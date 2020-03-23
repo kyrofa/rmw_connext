@@ -20,6 +20,7 @@
 #include "rmw_connext_shared_cpp/ndds_include.hpp"
 #include "rmw_connext_shared_cpp/node.hpp"
 #include "rmw_connext_shared_cpp/types.hpp"
+#include "rmw_connext_shared_cpp/logging.hpp"
 
 #include "rmw/allocators.h"
 #include "rmw/error_handling.h"
@@ -152,6 +153,7 @@ create_node(
   char * key_fn = nullptr;
   char * gov_fn = nullptr;
   char * perm_fn = nullptr;
+  char * logging_fn = nullptr;
 
   if (security_options->security_root_path) {
     // enable some security stuff
@@ -214,6 +216,11 @@ create_node(
       RMW_SET_ERROR_MSG("failed to allocate memory for 'perm_fn'");
       goto fail;
     }
+    logging_fn = rcutils_join_path(srp, "logging.xml", allocator);
+    if (!logging_fn) {
+      RMW_SET_ERROR_MSG("failed to allocate memory for 'logging_fn'");
+      goto fail;
+    }
 
     // now try to pass these filenames to the Authentication plugin
     status = DDS::PropertyQosPolicyHelper::add_property(
@@ -273,6 +280,50 @@ create_node(
     if (status != DDS::RETCODE_OK) {
       RMW_SET_ERROR_MSG("failed to add security property");
       goto fail;
+    }
+
+    // Configure security logging
+    if (rcutils_is_readable(logging_fn)) {
+      LoggingInfo logging_info;
+      if (logging_info.load(logging_fn) != RMW_RET_OK) {
+        goto fail;
+      }
+
+      if (logging_info.log_file() != nullptr) {
+        status = DDS::PropertyQosPolicyHelper::add_property(
+          participant_qos.property,
+          "com.rti.serv.secure.logging.log_file",
+          logging_info.log_file(),
+          DDS::BOOLEAN_FALSE);
+        if (status != DDS::RETCODE_OK) {
+          RMW_SET_ERROR_MSG("failed to set security log file");
+          goto fail;
+        }
+      }
+
+      if (logging_info.log_verbosity() != nullptr) {
+        status = DDS::PropertyQosPolicyHelper::add_property(
+          participant_qos.property,
+          "com.rti.serv.secure.logging.verbosity",
+          logging_info.log_verbosity(),
+          DDS::BOOLEAN_FALSE);
+        if (status != DDS::RETCODE_OK) {
+          RMW_SET_ERROR_MSG("failed to set security log verbosity");
+          goto fail;
+        }
+      }
+
+      if (logging_info.log_verbosity() != nullptr) {
+        status = DDS::PropertyQosPolicyHelper::add_property(
+          participant_qos.property,
+          "com.rti.serv.secure.logging.distribute.enable",
+          logging_info.distribute_enable(),
+          DDS::BOOLEAN_FALSE);
+        if (status != DDS::RETCODE_OK) {
+          RMW_SET_ERROR_MSG("failed to set security log distribute enable");
+          goto fail;
+        }
+      }
     }
   }
 
@@ -426,6 +477,7 @@ fail:
   allocator.deallocate(key_fn, allocator.state);
   allocator.deallocate(gov_fn, allocator.state);
   allocator.deallocate(perm_fn, allocator.state);
+  allocator.deallocate(logging_fn, allocator.state);
   return NULL;
 }
 
