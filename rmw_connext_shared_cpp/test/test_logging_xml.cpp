@@ -19,10 +19,17 @@
 
 #include "gtest/gtest.h"
 
+namespace
+{
+const char * const log_file_property_name = "com.rti.serv.secure.logging.log_file";
+const char * const verbosity_property_name = "com.rti.serv.secure.logging.verbosity";
+const char * const logging_distribute_enable_property_name =
+  "com.rti.serv.secure.logging.distribute.enable";
+
 std::string write_logging_xml(const std::string & xml)
 {
-  char xml_file_path[] = "xml_file_XXXXXX";
-  close(mkstemp(xml_file_path));
+  // mkstemp isn't cross-platform
+  char * xml_file_path = std::tmpnam(nullptr);
 
   std::ofstream xml_file;
   xml_file.open(xml_file_path);
@@ -35,29 +42,78 @@ std::string write_logging_xml(const std::string & xml)
   return xml_file_path;
 }
 
+const char * lookup_property_value(DDS::PropertyQosPolicy & policy, const char * property_name)
+{
+  auto property = DDS::PropertyQosPolicyHelper::lookup_property(
+    policy,
+    property_name);
+
+  if (property == nullptr) {
+    return nullptr;
+  }
+
+  return property->value;
+}
+
+const char * log_file_property(DDS::PropertyQosPolicy & policy)
+{
+  return lookup_property_value(policy, log_file_property_name);
+}
+
+const char * verbosity_property(DDS::PropertyQosPolicy & policy)
+{
+  return lookup_property_value(policy, verbosity_property_name);
+}
+
+const char * logging_distribute_enable_property(DDS::PropertyQosPolicy & policy)
+{
+  return lookup_property_value(policy, logging_distribute_enable_property_name);
+}
+}  // namespace
+
 TEST(Logging, test_log_file)
 {
   std::string xml_file_path = write_logging_xml("<log_file>foo</log_file>");
-  LoggingInfo logging_info;
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
-  ASSERT_EQ(logging_info.load(xml_file_path.c_str()), RMW_RET_OK);
-  EXPECT_STREQ(logging_info.log_file(), "foo");
+  EXPECT_STREQ(log_file_property(policy), "foo");
+  EXPECT_EQ(verbosity_property(policy), nullptr);
+  EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
 }
 
-TEST(Logging, test_log_level)
+TEST(Logging, test_log_verbosity)
 {
   std::string xml_file_path = write_logging_xml("<log_verbosity>CRITICAL</log_verbosity>");
-  LoggingInfo logging_info;
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
-  ASSERT_EQ(logging_info.load(xml_file_path.c_str()), RMW_RET_OK);
-  EXPECT_STREQ(logging_info.log_verbosity(), "CRITICAL");
+  EXPECT_EQ(log_file_property(policy), nullptr);
+  EXPECT_STREQ(verbosity_property(policy), "CRITICAL");
+  EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
 }
 
 TEST(Logging, test_log_distribute)
 {
   std::string xml_file_path = write_logging_xml("<distribute><enable>true</enable></distribute>");
-  LoggingInfo logging_info;
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
-  ASSERT_EQ(logging_info.load(xml_file_path.c_str()), RMW_RET_OK);
-  EXPECT_STREQ(logging_info.distribute_enable(), "true");
+  EXPECT_EQ(log_file_property(policy), nullptr);
+  EXPECT_EQ(verbosity_property(policy), nullptr);
+  EXPECT_STREQ(logging_distribute_enable_property(policy), "true");
+}
+
+TEST(Logging, test_all)
+{
+  std::string xml_file_path = write_logging_xml(
+    "<log_file>foo</log_file>\n"
+    "<log_verbosity>CRITICAL</log_verbosity>\n"
+    "<distribute><enable>true</enable></distribute>");
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
+
+  EXPECT_STREQ(log_file_property(policy), "foo");
+  EXPECT_STREQ(verbosity_property(policy), "CRITICAL");
+  EXPECT_STREQ(logging_distribute_enable_property(policy), "true");
 }

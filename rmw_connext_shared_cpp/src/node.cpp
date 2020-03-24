@@ -284,45 +284,11 @@ create_node(
 
     // Configure security logging
     if (rcutils_is_readable(logging_fn)) {
-      LoggingInfo logging_info;
-      if (logging_info.load(logging_fn) != RMW_RET_OK) {
+      if (apply_logging_configuration_from_file(
+          logging_fn,
+          participant_qos.property) != RMW_RET_OK)
+      {
         goto fail;
-      }
-
-      if (logging_info.log_file() != nullptr) {
-        status = DDS::PropertyQosPolicyHelper::add_property(
-          participant_qos.property,
-          "com.rti.serv.secure.logging.log_file",
-          logging_info.log_file(),
-          DDS::BOOLEAN_FALSE);
-        if (status != DDS::RETCODE_OK) {
-          RMW_SET_ERROR_MSG("failed to set security log file");
-          goto fail;
-        }
-      }
-
-      if (logging_info.log_verbosity() != nullptr) {
-        status = DDS::PropertyQosPolicyHelper::add_property(
-          participant_qos.property,
-          "com.rti.serv.secure.logging.verbosity",
-          logging_info.log_verbosity(),
-          DDS::BOOLEAN_FALSE);
-        if (status != DDS::RETCODE_OK) {
-          RMW_SET_ERROR_MSG("failed to set security log verbosity");
-          goto fail;
-        }
-      }
-
-      if (logging_info.log_verbosity() != nullptr) {
-        status = DDS::PropertyQosPolicyHelper::add_property(
-          participant_qos.property,
-          "com.rti.serv.secure.logging.distribute.enable",
-          logging_info.distribute_enable(),
-          DDS::BOOLEAN_FALSE);
-        if (status != DDS::RETCODE_OK) {
-          RMW_SET_ERROR_MSG("failed to set security log distribute enable");
-          goto fail;
-        }
       }
     }
   }

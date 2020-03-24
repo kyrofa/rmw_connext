@@ -21,24 +21,8 @@
 
 #include "rmw_connext_shared_cpp/ndds_include.hpp"
 
-class LoggingInfo
-{
-public:
-  LoggingInfo();
-  rmw_ret_t load(const char * xml_file_path);
-
-  const char * distribute_enable() const;
-  DDS::DomainParticipantQos distribute_qos() const;
-
-  const char * log_file() const;
-  const char * log_verbosity() const;
-
-private:
-  tinyxml2::XMLDocument m_xmlDocument;
-  const char * m_log_file = nullptr;
-  const char * m_log_verbosity = nullptr;
-  const char * m_distribute_enable = "false";
-  DDS::DomainParticipantQos m_distribute_qos;
-};
+rmw_ret_t apply_logging_configuration_from_file(
+  const char * xml_file_path,
+  DDS::PropertyQosPolicy & policy);
 
 #endif  // RMW_CONNEXT_SHARED_CPP__LOGGING_HPP_
