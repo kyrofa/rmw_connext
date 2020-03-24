@@ -80,6 +80,22 @@ rmw_ret_t apply_logging_configuration_from_file(
         }
       }
     }
+
+    auto depth_options = distribute_options->FirstChildElement("depth");
+    if (depth_options != nullptr) {
+      const char * depth = depth_options->GetText();
+      if (depth != nullptr) {
+        auto status = DDS::PropertyQosPolicyHelper::add_property(
+          policy,
+          "com.rti.serv.secure.logging.distribute.writer_history_depth",
+          depth,
+          DDS::BOOLEAN_FALSE);
+        if (status != DDS::RETCODE_OK) {
+          RMW_SET_ERROR_MSG("failed to set security log distribute depth");
+          return RMW_RET_ERROR;
+        }
+      }
+    }
   }
 
   return RMW_RET_OK;

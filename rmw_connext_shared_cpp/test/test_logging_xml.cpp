@@ -25,6 +25,8 @@ const char * const log_file_property_name = "com.rti.serv.secure.logging.log_fil
 const char * const verbosity_property_name = "com.rti.serv.secure.logging.verbosity";
 const char * const logging_distribute_enable_property_name =
   "com.rti.serv.secure.logging.distribute.enable";
+const char * const logging_distribute_depth_property_name =
+  "com.rti.serv.secure.logging.distribute.writer_history_depth";
 
 std::string write_logging_xml(const std::string & xml)
 {
@@ -69,6 +71,11 @@ const char * logging_distribute_enable_property(DDS::PropertyQosPolicy & policy)
 {
   return lookup_property_value(policy, logging_distribute_enable_property_name);
 }
+
+const char * logging_distribute_depth_property(DDS::PropertyQosPolicy & policy)
+{
+  return lookup_property_value(policy, logging_distribute_depth_property_name);
+}
 }  // namespace
 
 TEST(Logging, test_log_file)
@@ -80,6 +87,7 @@ TEST(Logging, test_log_file)
   EXPECT_STREQ(log_file_property(policy), "foo");
   EXPECT_EQ(verbosity_property(policy), nullptr);
   EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
+  EXPECT_EQ(logging_distribute_depth_property(policy), nullptr);
 }
 
 TEST(Logging, test_log_verbosity)
@@ -91,6 +99,7 @@ TEST(Logging, test_log_verbosity)
   EXPECT_EQ(log_file_property(policy), nullptr);
   EXPECT_STREQ(verbosity_property(policy), "CRITICAL");
   EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
+  EXPECT_EQ(logging_distribute_depth_property(policy), nullptr);
 }
 
 TEST(Logging, test_log_distribute)
@@ -102,6 +111,19 @@ TEST(Logging, test_log_distribute)
   EXPECT_EQ(log_file_property(policy), nullptr);
   EXPECT_EQ(verbosity_property(policy), nullptr);
   EXPECT_STREQ(logging_distribute_enable_property(policy), "true");
+  EXPECT_EQ(logging_distribute_depth_property(policy), nullptr);
+}
+
+TEST(Logging, test_log_depth)
+{
+  std::string xml_file_path = write_logging_xml("<distribute><depth>10</depth></distribute>");
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
+
+  EXPECT_EQ(log_file_property(policy), nullptr);
+  EXPECT_EQ(verbosity_property(policy), nullptr);
+  EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
+  EXPECT_STREQ(logging_distribute_depth_property(policy), "10");
 }
 
 TEST(Logging, test_all)
@@ -109,11 +131,15 @@ TEST(Logging, test_all)
   std::string xml_file_path = write_logging_xml(
     "<log_file>foo</log_file>\n"
     "<log_verbosity>CRITICAL</log_verbosity>\n"
-    "<distribute><enable>true</enable></distribute>");
+    "<distribute>\n"
+    "  <enable>true</enable>\n"
+    "  <depth>10</depth>\n"
+    "</distribute>");
   DDS::PropertyQosPolicy policy;
   ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
   EXPECT_STREQ(log_file_property(policy), "foo");
   EXPECT_STREQ(verbosity_property(policy), "CRITICAL");
   EXPECT_STREQ(logging_distribute_enable_property(policy), "true");
+  EXPECT_STREQ(logging_distribute_depth_property(policy), "10");
 }
