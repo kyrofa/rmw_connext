@@ -25,13 +25,13 @@ rmw_ret_t apply_logging_configuration_from_file(
   tinyxml2::XMLDocument document;
   document.LoadFile(xml_file_path);
 
-  auto log_options = document.FirstChildElement("participant_security_log");
+  auto log_options = document.FirstChildElement("security_log");
   if (log_options == nullptr) {
-    RMW_SET_ERROR_MSG("logger xml file missing 'participant_security_log'");
+    RMW_SET_ERROR_MSG("logger xml file missing 'security_log'");
     return RMW_RET_ERROR;
   }
 
-  auto log_file_options = log_options->FirstChildElement("log_file");
+  auto log_file_options = log_options->FirstChildElement("file");
   if (log_file_options != nullptr) {
     const char * log_file = log_file_options->GetText();
     if (log_file != nullptr) {
@@ -47,7 +47,7 @@ rmw_ret_t apply_logging_configuration_from_file(
     }
   }
 
-  auto log_level_options = log_options->FirstChildElement("log_verbosity");
+  auto log_level_options = log_options->FirstChildElement("verbosity");
   if (log_level_options != nullptr) {
     const char * log_verbosity = log_level_options->GetText();
     if (log_verbosity != nullptr) {
@@ -65,25 +65,25 @@ rmw_ret_t apply_logging_configuration_from_file(
 
   auto distribute_options = log_options->FirstChildElement("distribute");
   if (distribute_options != nullptr) {
-    auto enable_options = distribute_options->FirstChildElement("enable");
-    if (enable_options != nullptr) {
-      const char * distribute_enable = enable_options->GetText();
-      if (distribute_enable != nullptr) {
-        auto status = DDS::PropertyQosPolicyHelper::add_property(
-          policy,
-          "com.rti.serv.secure.logging.distribute.enable",
-          distribute_enable,
-          DDS::BOOLEAN_FALSE);
-        if (status != DDS::RETCODE_OK) {
-          RMW_SET_ERROR_MSG("failed to set security log distribute enable");
-          return RMW_RET_ERROR;
-        }
+    const char * distribute_enable = distribute_options->GetText();
+    if (distribute_enable != nullptr) {
+      auto status = DDS::PropertyQosPolicyHelper::add_property(
+        policy,
+        "com.rti.serv.secure.logging.distribute.enable",
+        distribute_enable,
+        DDS::BOOLEAN_FALSE);
+      if (status != DDS::RETCODE_OK) {
+        RMW_SET_ERROR_MSG("failed to set security log distribute enable");
+        return RMW_RET_ERROR;
       }
     }
+  }
 
-    auto depth_options = distribute_options->FirstChildElement("depth");
-    if (depth_options != nullptr) {
-      const char * depth = depth_options->GetText();
+  auto qos_options = log_options->FirstChildElement("qos");
+  if (qos_options != nullptr) {
+    auto depth_element = qos_options->FirstChildElement("depth");
+    if (depth_element != nullptr) {
+      const char * depth = depth_element->GetText();
       if (depth != nullptr) {
         auto status = DDS::PropertyQosPolicyHelper::add_property(
           policy,

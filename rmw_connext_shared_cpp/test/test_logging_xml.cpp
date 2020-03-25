@@ -36,9 +36,9 @@ std::string write_logging_xml(const std::string & xml)
   std::ofstream xml_file;
   xml_file.open(xml_file_path);
   xml_file << "<?xml version='1.0' encoding='UTF-8'?>" << std::endl;
-  xml_file << "<participant_security_log version='1'>" << std::endl;
+  xml_file << "<security_log version='1'>" << std::endl;
   xml_file << xml << std::endl;
-  xml_file << "</participant_security_log>" << std::endl;
+  xml_file << "</security_log>" << std::endl;
   xml_file.close();
 
   return xml_file_path;
@@ -80,7 +80,7 @@ const char * logging_distribute_depth_property(DDS::PropertyQosPolicy & policy)
 
 TEST(Logging, test_log_file)
 {
-  std::string xml_file_path = write_logging_xml("<log_file>foo</log_file>");
+  std::string xml_file_path = write_logging_xml("<file>foo</file>");
   DDS::PropertyQosPolicy policy;
   ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
@@ -92,7 +92,7 @@ TEST(Logging, test_log_file)
 
 TEST(Logging, test_log_verbosity)
 {
-  std::string xml_file_path = write_logging_xml("<log_verbosity>CRITICAL</log_verbosity>");
+  std::string xml_file_path = write_logging_xml("<verbosity>CRITICAL</verbosity>");
   DDS::PropertyQosPolicy policy;
   ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
@@ -104,7 +104,7 @@ TEST(Logging, test_log_verbosity)
 
 TEST(Logging, test_log_distribute)
 {
-  std::string xml_file_path = write_logging_xml("<distribute><enable>true</enable></distribute>");
+  std::string xml_file_path = write_logging_xml("<distribute>true</distribute>");
   DDS::PropertyQosPolicy policy;
   ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
@@ -116,7 +116,7 @@ TEST(Logging, test_log_distribute)
 
 TEST(Logging, test_log_depth)
 {
-  std::string xml_file_path = write_logging_xml("<distribute><depth>10</depth></distribute>");
+  std::string xml_file_path = write_logging_xml("<qos><depth>10</depth></qos>");
   DDS::PropertyQosPolicy policy;
   ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
@@ -129,12 +129,12 @@ TEST(Logging, test_log_depth)
 TEST(Logging, test_all)
 {
   std::string xml_file_path = write_logging_xml(
-    "<log_file>foo</log_file>\n"
-    "<log_verbosity>CRITICAL</log_verbosity>\n"
-    "<distribute>\n"
-    "  <enable>true</enable>\n"
+    "<file>foo</file>\n"
+    "<verbosity>CRITICAL</verbosity>\n"
+    "<distribute>true</distribute>\n"
+    "<qos>\n"
     "  <depth>10</depth>\n"
-    "</distribute>");
+    "</qos>");
   DDS::PropertyQosPolicy policy;
   ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
 
