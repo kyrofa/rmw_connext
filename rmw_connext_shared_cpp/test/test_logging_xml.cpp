@@ -23,9 +23,9 @@ namespace
 {
 const char * const log_file_property_name = "com.rti.serv.secure.logging.log_file";
 const char * const verbosity_property_name = "com.rti.serv.secure.logging.verbosity";
-const char * const logging_distribute_enable_property_name =
+const char * const distribute_enable_property_name =
   "com.rti.serv.secure.logging.distribute.enable";
-const char * const logging_distribute_depth_property_name =
+const char * const distribute_depth_property_name =
   "com.rti.serv.secure.logging.distribute.writer_history_depth";
 
 std::string write_logging_xml(const std::string & xml)
@@ -69,12 +69,12 @@ const char * verbosity_property(DDS::PropertyQosPolicy & policy)
 
 const char * logging_distribute_enable_property(DDS::PropertyQosPolicy & policy)
 {
-  return lookup_property_value(policy, logging_distribute_enable_property_name);
+  return lookup_property_value(policy, distribute_enable_property_name);
 }
 
 const char * logging_distribute_depth_property(DDS::PropertyQosPolicy & policy)
 {
-  return lookup_property_value(policy, logging_distribute_depth_property_name);
+  return lookup_property_value(policy, distribute_depth_property_name);
 }
 }  // namespace
 
@@ -124,6 +124,41 @@ TEST(Logging, test_log_depth)
   EXPECT_EQ(verbosity_property(policy), nullptr);
   EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
   EXPECT_STREQ(logging_distribute_depth_property(policy), "10");
+}
+
+TEST(Logging, test_profile)
+{
+  std::string xml_file_path = write_logging_xml("<qos><profile>DEFAULT</profile></qos>");
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
+
+  EXPECT_EQ(log_file_property(policy), nullptr);
+  EXPECT_EQ(verbosity_property(policy), nullptr);
+  EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
+  EXPECT_STREQ(logging_distribute_depth_property(policy), "10");
+}
+
+TEST(Logging, test_profile_overwrite)
+{
+  std::string xml_file_path = write_logging_xml(
+    "<qos>\n"
+    "  <profile>DEFAULT</profile>\n"
+    "  <depth>42</depth>\n"
+    "</qos>");
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_OK);
+
+  EXPECT_EQ(log_file_property(policy), nullptr);
+  EXPECT_EQ(verbosity_property(policy), nullptr);
+  EXPECT_EQ(logging_distribute_enable_property(policy), nullptr);
+  EXPECT_STREQ(logging_distribute_depth_property(policy), "42");
+}
+
+TEST(Logging, test_profile_invalid)
+{
+  std::string xml_file_path = write_logging_xml("<qos><profile>INVALID_PROFILE</profile></qos>");
+  DDS::PropertyQosPolicy policy;
+  ASSERT_EQ(apply_logging_configuration_from_file(xml_file_path.c_str(), policy), RMW_RET_ERROR);
 }
 
 TEST(Logging, test_all)
