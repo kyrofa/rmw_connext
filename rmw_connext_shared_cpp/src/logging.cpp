@@ -18,6 +18,37 @@
 
 #include "rmw_connext_shared_cpp/logging.hpp"
 
+namespace
+{
+rmw_ret_t apply_property(
+  DDS::PropertyQosPolicy & policy, const char * const property,
+  const tinyxml2::XMLElement & element, const char * const tag_name)
+{
+  auto tag = element.FirstChildElement(tag_name);
+  if (tag != nullptr) {
+    const char * depth = tag->GetText();
+    if (depth == nullptr) {
+      RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
+        "failed to set security logging %s: improper format",
+        tag_name);
+      return RMW_RET_ERROR;
+    }
+
+    auto status = DDS::PropertyQosPolicyHelper::add_property(
+      policy,
+      property,
+      depth,
+      DDS::BOOLEAN_FALSE);
+    if (status != DDS::RETCODE_OK) {
+      RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("failed to set security logging %s", tag_name);
+      return RMW_RET_ERROR;
+    }
+  }
+
+  return RMW_RET_OK;
+}
+}  // namespace
+
 rmw_ret_t apply_logging_configuration_from_file(
   const char * xml_file_path,
   DDS::PropertyQosPolicy & policy)
@@ -31,70 +62,42 @@ rmw_ret_t apply_logging_configuration_from_file(
     return RMW_RET_ERROR;
   }
 
-  auto log_file_options = log_options->FirstChildElement("file");
-  if (log_file_options != nullptr) {
-    const char * log_file = log_file_options->GetText();
-    if (log_file != nullptr) {
-      auto status = DDS::PropertyQosPolicyHelper::add_property(
-        policy,
-        "com.rti.serv.secure.logging.log_file",
-        log_file,
-        DDS::BOOLEAN_FALSE);
-      if (status != DDS::RETCODE_OK) {
-        RMW_SET_ERROR_MSG("failed to set security log file");
-        return RMW_RET_ERROR;
-      }
-    }
+  auto status = apply_property(
+    policy,
+    "com.rti.serv.secure.logging.log_file",
+    *log_options,
+    "file");
+  if (status != RMW_RET_OK) {
+    return status;
   }
 
-  auto log_level_options = log_options->FirstChildElement("verbosity");
-  if (log_level_options != nullptr) {
-    const char * log_verbosity = log_level_options->GetText();
-    if (log_verbosity != nullptr) {
-      auto status = DDS::PropertyQosPolicyHelper::add_property(
-        policy,
-        "com.rti.serv.secure.logging.verbosity",
-        log_verbosity,
-        DDS::BOOLEAN_FALSE);
-      if (status != DDS::RETCODE_OK) {
-        RMW_SET_ERROR_MSG("failed to set security log verbosity");
-        return RMW_RET_ERROR;
-      }
-    }
+  status = apply_property(
+    policy,
+    "com.rti.serv.secure.logging.verbosity",
+    *log_options,
+    "verbosity");
+  if (status != RMW_RET_OK) {
+    return status;
   }
 
-  auto distribute_options = log_options->FirstChildElement("distribute");
-  if (distribute_options != nullptr) {
-    const char * distribute_enable = distribute_options->GetText();
-    if (distribute_enable != nullptr) {
-      auto status = DDS::PropertyQosPolicyHelper::add_property(
-        policy,
-        "com.rti.serv.secure.logging.distribute.enable",
-        distribute_enable,
-        DDS::BOOLEAN_FALSE);
-      if (status != DDS::RETCODE_OK) {
-        RMW_SET_ERROR_MSG("failed to set security log distribute enable");
-        return RMW_RET_ERROR;
-      }
-    }
+  status = apply_property(
+    policy,
+    "com.rti.serv.secure.logging.distribute.enable",
+    *log_options,
+    "distribute");
+  if (status != RMW_RET_OK) {
+    return status;
   }
 
   auto qos_options = log_options->FirstChildElement("qos");
   if (qos_options != nullptr) {
-    auto depth_element = qos_options->FirstChildElement("depth");
-    if (depth_element != nullptr) {
-      const char * depth = depth_element->GetText();
-      if (depth != nullptr) {
-        auto status = DDS::PropertyQosPolicyHelper::add_property(
-          policy,
-          "com.rti.serv.secure.logging.distribute.writer_history_depth",
-          depth,
-          DDS::BOOLEAN_FALSE);
-        if (status != DDS::RETCODE_OK) {
-          RMW_SET_ERROR_MSG("failed to set security log distribute depth");
-          return RMW_RET_ERROR;
-        }
-      }
+    status = apply_property(
+      policy,
+      "com.rti.serv.secure.logging.distribute.writer_history_depth",
+      *qos_options,
+      "depth");
+    if (status != RMW_RET_OK) {
+      return status;
     }
   }
 

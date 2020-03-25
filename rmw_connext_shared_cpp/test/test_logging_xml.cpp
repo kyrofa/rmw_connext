@@ -30,7 +30,7 @@ const char * const logging_distribute_depth_property_name =
 
 std::string write_logging_xml(const std::string & xml)
 {
-  // mkstemp isn't cross-platform
+  // mkstemp isn't cross-platform, and we don't care about security here
   char * xml_file_path = std::tmpnam(nullptr);
 
   std::ofstream xml_file;
